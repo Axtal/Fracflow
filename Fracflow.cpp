@@ -21,8 +21,7 @@
 #include <list>
 
 // MechSys
-#include <mechsys/lbm/Domain.h>
-#include <mechsys/dem/domain.h>
+#include <mechsys/flbm/Domain.h>
 
 enum GradCase
 {
@@ -33,89 +32,156 @@ enum GradCase
 
 struct UserData
 {
-    Array<Cell *> xmin;
-    Array<Cell *> xmax;
-    Array<Cell *> ymin;
-    Array<Cell *> ymax;
-    Array<Cell *> zmin;
-    Array<Cell *> zmax;
-    double        vmax;
-    double        rho;
+    double        rhoxmin;
+    double        rhoxmax;
+    double        rhoymin;
+    double        rhoymax;
+    double        rhozmin;
+    double        rhozmax;
     std::ofstream oss_ss;       ///< file for stress strain data
 };
 
-void Setup (LBM::Domain & dom, void * UD)
+void Setup (FLBM::Domain & dom, void * UD)
 {
     UserData & dat = (*static_cast<UserData *>(UD));
-    for (size_t i=0;i<dat.xmin.Size();i++)
+    #pragma omp parallel for schedule(static) num_threads(dom.Nproc)
+    for (size_t ix=0;ix<dom.Ndim(0);ix++)
+    for (size_t iy=0;iy<dom.Ndim(1);iy++)
     {
-        Cell * c = dat.xmin[i];
-        if(c->IsSolid) continue;
-        c->F[1] = 1.0/3.0*(-2*c->F[0]-4*c->F[10]-4*c->F[12]-4*c->F[14]-c->F[2]-2*c->F[3]-2*c->F[4]-2*c->F[5]-2*c->F[6]-4*c->F[8]+2*c->RhoBC);
-        c->F[7] = 1.0/24.0*(-2*c->F[0]-4*c->F[10]-4*c->F[12]-4*c->F[14]-4*c->F[2] +c->F[3]-5*c->F[4]  +c->F[5]-5*c->F[6]+20*c->F[8]+2*c->RhoBC);
-        c->F[9] = 1.0/24.0*(-2*c->F[0]+20*c->F[10]-4*c->F[12]-4*c->F[14]-4*c->F[2]+c->F[3]-5*c->F[4]-5*c->F[5]+c->F[6]-4*c->F[8]+2*c->RhoBC);
-        c->F[11]= 1.0/24.0*(-2*c->F[0]-4*c->F[10]+20*c->F[12]-4*c->F[14]-4*c->F[2]-5*c->F[3]+c->F[4]  +c->F[5]-5*c->F[6]-4*c->F[8]+2*c->RhoBC);
-        c->F[13]= 1.0/24.0*(-2*c->F[0]-4*c->F[10]-4 *c->F[12]+20*c->F[14]-4*c->F[2]-5*c->F[3]+  c->F[4]-5*c->F[5]+c->F[6]-4*c->F[8]+2*c->RhoBC);
-        c->Rho = c->VelDen(c->Vel);
+        if (!dom.IsSolid[0][ix][iy][0])
+        {
+            double * F = dom.   F[0][ix][iy][0];
+            Vec3_t * V = &dom.Vel[0][ix][iy][0];
+            double * R = &dom.Rho[0][ix][iy][0];
+            F[1] = 1.0/3.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-F[2]-2*F[3]-2*F[4]-2*F[5]-2*F[6]-4*F[8]+2*dat.rhoxmin);
+            F[7] = 1.0/24.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-4*F[2] +F[3]-5*F[4]  +F[5]-5*F[6]+20*F[8]+2*dat.rhoxmin);
+            F[9] = 1.0/24.0*(-2*F[0]+20*F[10]-4*F[12]-4*F[14]-4*F[2]+F[3]-5*F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhoxmin);
+            F[11]= 1.0/24.0*(-2*F[0]-4*F[10]+20*F[12]-4*F[14]-4*F[2]-5*F[3]+F[4]  +F[5]-5*F[6]-4*F[8]+2*dat.rhoxmin);
+            F[13]= 1.0/24.0*(-2*F[0]-4*F[10]-4 *F[12]+20*F[14]-4*F[2]-5*F[3]+  F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhoxmin);
+            *V = OrthoSys::O;
+            *R = 0.0;
+            for (size_t k=0;k<dom.Nneigh;k++)
+            {
+                *V += F[k]*dom.C[k];
+                *R += F[k];
+            }
+            *V /= *R;
+        }
+
+        if (!dom.IsSolid[0][ix][iy][dom.Ndim(2)-1])
+        {
+            double * F = dom.   F[0][ix][iy][dom.Ndim(2)-1];
+            Vec3_t * V = &dom.Vel[0][ix][iy][dom.Ndim(2)-1];
+            double * R = &dom.Rho[0][ix][iy][dom.Ndim(2)-1];
+            F[2] = 1/3.0* (-2*F[0]-F[1]-2*(2*F[11]+2*F[13]+F[3]+F[4]+F[5]+F[6]+2*F[7]+2*F[9]-dat.rhoxmax));
+            F[8] = 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] - 5*F[5] + F[6] +20*F[7] - 4*F[9] + 2*dat.rhoxmax);
+            F[10]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] + F[5] - 5*F[6] - 4*F[7] + 20*F[9] + 2*dat.rhoxmax) ;
+            F[12]= 1/24.0*(-2*F[0] - 4*F[1] + 20*F[11] - 4*F[13] + F[3] - 5*F[4] - 5*F[5] + F[6] -  4*F[7] - 4*F[9] + 2*dat.rhoxmax);
+            F[14]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] + 20*F[13] + F[3] - 5*F[4] + F[5] - 5*F[6] -  4*F[7] - 4*F[9] + 2*dat.rhoxmax);
+            *V = OrthoSys::O;
+            *R = 0.0;
+            for (size_t k=0;k<dom.Nneigh;k++)
+            {
+                *V += F[k]*dom.C[k];
+                *R += F[k];
+            }
+            *V /= *R;
+        }
     }
-    for (size_t i=0;i<dat.xmax.Size();i++)
+
+    #pragma omp parallel for schedule(static) num_threads(dom.Nproc)
+    for (size_t ix=0;ix<dom.Ndim(0);ix++)
+    for (size_t iz=0;iz<dom.Ndim(2);iz++)
     {
-        Cell * c = dat.xmax[i];
-        if(c->IsSolid) continue;
-        c->F[2] = 1/3.0* (-2*c->F[0]-c->F[1]-2*(2*c->F[11]+2*c->F[13]+c->F[3]+c->F[4]+c->F[5]+c->F[6]+2*c->F[7]+2*c->F[9]-c->RhoBC));
-        c->F[8] = 1/24.0*(-2*c->F[0] - 4*c->F[1] - 4*c->F[11] - 4*c->F[13] - 5*c->F[3] + c->F[4] - 5*c->F[5] + c->F[6] +20*c->F[7] - 4*c->F[9] + 2*c->RhoBC);
-        c->F[10]= 1/24.0*(-2*c->F[0] - 4*c->F[1] - 4*c->F[11] - 4*c->F[13] - 5*c->F[3] + c->F[4] + c->F[5] - 5*c->F[6] - 4*c->F[7] + 20*c->F[9] + 2*c->RhoBC) ;
-        c->F[12]= 1/24.0*(-2*c->F[0] - 4*c->F[1] + 20*c->F[11] - 4*c->F[13] + c->F[3] - 5*c->F[4] - 5*c->F[5] + c->F[6] -  4*c->F[7] - 4*c->F[9] + 2*c->RhoBC);
-        c->F[14]= 1/24.0*(-2*c->F[0] - 4*c->F[1] - 4*c->F[11] + 20*c->F[13] + c->F[3] - 5*c->F[4] + c->F[5] - 5*c->F[6] -  4*c->F[7] - 4*c->F[9] + 2*c->RhoBC);
-        c->Rho = c->VelDen(c->Vel);
+        if (!dom.IsSolid[0][ix][0][iz])
+        {
+            double * F = dom.   F[0][ix][0][iz];
+            Vec3_t * V = &dom.Vel[0][ix][0][iz];
+            double * R = &dom.Rho[0][ix][0][iz];
+            F[3]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[13]- 2*F[2]- F[4]- 2*F[5]- 2*F[6]- 4*F[8]+ 2*dat.rhoymin);
+            F[7]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]- 4*F[13]- 5*F[2]- 4*F[4]+ F[5]-  5*F[6]+ 20*F[8]+2*dat.rhoymin);
+            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[13]- 5*F[2]- 4*F[4]- 5*F[5]+ F[6]- 4*F[8]+ 2*dat.rhoymin);
+            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[13]+ F[2]- 4*F[4]-5*F[5]+ F[6]- 4*F[8]+ 2*dat.rhoymin);
+            F[14]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]+ 20*F[13]+ F[2]- 4*F[4]+ F[5]-5*F[6]- 4*F[8]+ 2*dat.rhoymin);
+            *V = OrthoSys::O;
+            *R = 0.0;
+            for (size_t k=0;k<dom.Nneigh;k++)
+            {
+                *V += F[k]*dom.C[k];
+                *R += F[k];
+            }
+            *V /= *R;
+        }
+
+        if (!dom.IsSolid[0][ix][dom.Ndim(1)-1][iz])
+        {
+            double * F = dom.   F[0][ix][dom.Ndim(1)-1][iz];
+            Vec3_t * V = &dom.Vel[0][ix][dom.Ndim(1)-1][iz];
+            double * R = &dom.Rho[0][ix][dom.Ndim(1)-1][iz];
+            F[4]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[12]- 4*F[14]- 2*F[2]- F[3]- 2*F[5]- 2*F[6]- 4*F[7]- 4*F[9]+ 2*dat.rhoymax);
+            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[12]- 4*F[14]+ F[2]- 4*F[3]- 5*F[5]+ F[6]+  20*F[7]- 4*F[9]+2*dat.rhoymax);
+            F[10]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[12]- 4*F[14]+ F[2]- 4*F[3]+ F[5]- 5*F[6]- 4*F[7]+ 20*F[9]+2*dat.rhoymax);
+            F[11]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[12]- 4*F[14]- 5*F[2]- 4*F[3]+ F[5]- 5*F[6]-4*F[7]- 4*F[9]+ 2*dat.rhoymax);
+            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[12]+ 20*F[14]- 5*F[2]- 4*F[3]- 5*F[5]+ F[6]-4*F[7]- 4*F[9]+ 2*dat.rhoymax);
+            *V = OrthoSys::O;
+            *R = 0.0;
+            for (size_t k=0;k<dom.Nneigh;k++)
+            {
+                *V += F[k]*dom.C[k];
+                *R += F[k];
+            }
+            *V /= *R;
+        }
     }
-    for (size_t i=0;i<dat.ymin.Size();i++)
+
+    #pragma omp parallel for schedule(static) num_threads(dom.Nproc)
+    for (size_t iy=0;iy<dom.Ndim(1);iy++)
+    for (size_t iz=0;iz<dom.Ndim(2);iz++)
     {
-        Cell * c = dat.ymin[i];
-        if(c->IsSolid) continue;
-        c->F[3]= 1/3.0*(-2*c->F[0]- 2*c->F[1]- 4*c->F[10]- 4*c->F[11]- 4*c->F[13]- 2*c->F[2]- c->F[4]- 2*c->F[5]- 2*c->F[6]- 4*c->F[8]+ 2*c->RhoBC);
-        c->F[7]= 1/24.0*(-2*c->F[0]+ c->F[1]- 4*c->F[10]- 4*c->F[11]- 4*c->F[13]- 5*c->F[2]- 4*c->F[4]+ c->F[5]-  5*c->F[6]+ 20*c->F[8]+ 2*c->RhoBC);
-        c->F[9]= 1/24.0*(-2*c->F[0]+ c->F[1]+ 20*c->F[10]- 4*c->F[11]- 4*c->F[13]- 5*c->F[2]- 4*c->F[4]- 5*c->F[5]+ c->F[6]- 4*c->F[8]+ 2*c->RhoBC);
-        c->F[12]= 1/24.0*(-2*c->F[0]- 5*c->F[1]- 4*c->F[10]+ 20*c->F[11]- 4*c->F[13]+ c->F[2]- 4*c->F[4]-5*c->F[5]+ c->F[6]- 4*c->F[8]+ 2*c->RhoBC);
-        c->F[14]= 1/24.0*(-2*c->F[0]- 5*c->F[1]- 4*c->F[10]- 4*c->F[11]+ 20*c->F[13]+ c->F[2]- 4*c->F[4]+ c->F[5]-5*c->F[6]- 4*c->F[8]+ 2*c->RhoBC);
-        c->Rho = c->VelDen(c->Vel);
+        if (!dom.IsSolid[0][0][iy][iz])
+        {
+            double * F = dom.   F[0][0][iy][iz];
+            Vec3_t * V = &dom.Vel[0][0][iy][iz];
+            double * R = &dom.Rho[0][0][iy][iz];
+            F[5] = 1/3.0*(-2*F[0] - 2*F[1] - 4*F[12] - 4*F[13] - 2*F[2] - 2*F[3] - 2*F[4] - F[6] -  4*F[8] - 4*F[9] + 2*dat.rhozmin);
+            F[7] = 1/24.0*(-2*F[0] + F[1] - 4*F[12] - 4*F[13] - 5*F[2] + F[3] - 5*F[4] - 4*F[6] +  20*F[8] - 4*F[9] + 2*dat.rhozmin);
+            F[10] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] - 4*F[13] + F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] + 20*F[9] + 2*dat.rhozmin);
+            F[11] = 1/24.0*(-2*F[0] + F[1] + 20*F[12] - 4*F[13] - 5*F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhozmin);
+            F[14] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] + 20*F[13] + F[2] + F[3] - 5*F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhozmin);
+            *V = OrthoSys::O;
+            *R = 0.0;
+            for (size_t k=0;k<dom.Nneigh;k++)
+            {
+                *V += F[k]*dom.C[k];
+                *R += F[k];
+            }
+            *V /= *R;
+        }
+
+        if (!dom.IsSolid[0][dom.Ndim(0)-1][iy][iz])
+        {
+            double * F = dom.   F[0][dom.Ndim(0)-1][iy][iz];
+            Vec3_t * V = &dom.Vel[0][dom.Ndim(0)-1][iy][iz];
+            double * R = &dom.Rho[0][dom.Ndim(0)-1][iy][iz];
+            F[6]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[14]- 2*F[2]- 2*F[3]- 2*F[4]- F[5]- 4*F[7]+ 2*dat.rhozmax);
+            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]- 4*F[14]+ F[2]- 5*F[3]+ F[4]- 4*F[5]+ 20*F[7]+ 2*dat.rhozmax);
+            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[14]- 5*F[2]+ F[3]- 5*F[4]- 4*F[5]- 4*F[7]+ 2*dat.rhozmax);
+            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[14]+ F[2]+ F[3]- 5*F[4]-4*F[5]- 4*F[7]+ 2*dat.rhozmax);
+            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]+ 20*F[14]- 5*F[2]- 5*F[3]+ F[4]-4*F[5]- 4*F[7]+ 2*dat.rhozmax);
+            *V = OrthoSys::O;
+            *R = 0.0;
+            for (size_t k=0;k<dom.Nneigh;k++)
+            {
+                *V += F[k]*dom.C[k];
+                *R += F[k];
+            }
+            *V /= *R;
+        }
     }
-    for (size_t i=0;i<dat.ymax.Size();i++)
-    {
-        Cell * c = dat.ymax[i];
-        if(c->IsSolid) continue;
-        c->F[4]= 1/3.0*(-2*c->F[0]- 2*c->F[1]- 4*c->F[12]- 4*c->F[14]- 2*c->F[2]- c->F[3]- 2*c->F[5]- 2*c->F[6]- 4*c->F[7]- 4*c->F[9]+ 2*c->RhoBC);
-        c->F[8]= 1/24.0*(-2*c->F[0]- 5*c->F[1]- 4*c->F[12]- 4*c->F[14]+ c->F[2]- 4*c->F[3]- 5*c->F[5]+ c->F[6]+  20*c->F[7]- 4*c->F[9]+ 2*c->RhoBC);
-        c->F[10]= 1/24.0*(-2*c->F[0]- 5*c->F[1]- 4*c->F[12]- 4*c->F[14]+ c->F[2]- 4*c->F[3]+ c->F[5]- 5*c->F[6]- 4*c->F[7]+ 20*c->F[9]+ 2*c->RhoBC);
-        c->F[11]= 1/24.0*(-2*c->F[0]+ c->F[1]+ 20*c->F[12]- 4*c->F[14]- 5*c->F[2]- 4*c->F[3]+ c->F[5]- 5*c->F[6]-4*c->F[7]- 4*c->F[9]+ 2*c->RhoBC);
-        c->F[13]= 1/24.0*(-2*c->F[0]+ c->F[1]- 4*c->F[12]+ 20*c->F[14]- 5*c->F[2]- 4*c->F[3]- 5*c->F[5]+ c->F[6]-4*c->F[7]- 4*c->F[9]+ 2*c->RhoBC);
-        c->Rho = c->VelDen(c->Vel);
-    }
-    for (size_t i=0;i<dat.zmin.Size();i++)
-    {
-        Cell * c = dat.zmin[i];
-        if(c->IsSolid) continue;
-        c->F[5] = 1/3.0*(-2*c->F[0] - 2*c->F[1] - 4*c->F[12] - 4*c->F[13] - 2*c->F[2] - 2*c->F[3] - 2*c->F[4] - c->F[6] -  4*c->F[8] - 4*c->F[9] + 2*c->RhoBC);
-        c->F[7] = 1/24.0*(-2*c->F[0] + c->F[1] - 4*c->F[12] - 4*c->F[13] - 5*c->F[2] + c->F[3] - 5*c->F[4] - 4*c->F[6] +  20*c->F[8] - 4*c->F[9] + 2*c->RhoBC);
-        c->F[10] = 1/24.0*(-2*c->F[0] - 5*c->F[1] - 4*c->F[12] - 4*c->F[13] + c->F[2] - 5*c->F[3] + c->F[4] - 4*c->F[6] - 4*c->F[8] + 20*c->F[9] + 2*c->RhoBC);
-        c->F[11] = 1/24.0*(-2*c->F[0] + c->F[1] + 20*c->F[12] - 4*c->F[13] - 5*c->F[2] - 5*c->F[3] + c->F[4] - 4*c->F[6] - 4*c->F[8] - 4*c->F[9] + 2*c->RhoBC);
-        c->F[14] = 1/24.0*(-2*c->F[0] - 5*c->F[1] - 4*c->F[12] + 20*c->F[13] + c->F[2] + c->F[3] - 5*c->F[4] - 4*c->F[6] - 4*c->F[8] - 4*c->F[9] + 2*c->RhoBC);
-        c->Rho = c->VelDen(c->Vel);
-    }
-    for (size_t i=0;i<dat.zmax.Size();i++)
-    {
-        Cell * c = dat.zmax[i];
-        if(c->IsSolid) continue;
-        c->F[6]= 1/3.0*(-2*c->F[0]- 2*c->F[1]- 4*c->F[10]- 4*c->F[11]- 4*c->F[14]- 2*c->F[2]- 2*c->F[3]- 2*c->F[4]- c->F[5]- 4*c->F[7]+ 2*c->RhoBC);
-        c->F[8]= 1/24.0*(-2*c->F[0]- 5*c->F[1]- 4*c->F[10]- 4*c->F[11]- 4*c->F[14]+ c->F[2]- 5*c->F[3]+ c->F[4]- 4*c->F[5]+ 20*c->F[7]+ 2*c->RhoBC);
-        c->F[9]= 1/24.0*(-2*c->F[0]+ c->F[1]+ 20*c->F[10]- 4*c->F[11]- 4*c->F[14]- 5*c->F[2]+ c->F[3]- 5*c->F[4]- 4*c->F[5]- 4*c->F[7]+ 2*c->RhoBC);
-        c->F[12]= 1/24.0*(-2*c->F[0]- 5*c->F[1]- 4*c->F[10]+ 20*c->F[11]- 4*c->F[14]+ c->F[2]+ c->F[3]- 5*c->F[4]-4*c->F[5]- 4*c->F[7]+ 2*c->RhoBC);
-        c->F[13]= 1/24.0*(-2*c->F[0]+ c->F[1]- 4*c->F[10]- 4*c->F[11]+ 20*c->F[14]- 5*c->F[2]- 5*c->F[3]+ c->F[4]-4*c->F[5]- 4*c->F[7]+ 2*c->RhoBC);
-        c->Rho = c->VelDen(c->Vel);
-    }
+
 }
 
-void Report (LBM::Domain & dom, void * UD)
+void Report (FLBM::Domain & dom, void * UD)
 {
     UserData & dat = (*static_cast<UserData *>(UD));
     if (dom.idx_out==0)
@@ -128,18 +194,15 @@ void Report (LBM::Domain & dom, void * UD)
     Vec3_t Flux = OrthoSys::O;
     double M    = 0.0;
     size_t nc   = 0;
-    for (size_t i=0;i<dom.Lat[0].Ncells;i++)
+    for (size_t ix=0;ix<dom.Ndim(0);ix++)
+    for (size_t iy=0;iy<dom.Ndim(1);iy++)
+    for (size_t iz=0;iz<dom.Ndim(2);iz++)
     {
-        Cell * c = dom.Lat[0].Cells[i];
-        if (c->IsSolid) continue;
-        Vec3_t DF;
-        double rho = c->VelDen(DF);
-        Flux += rho*DF;
-        M += rho;
-        nc++;
+        Flux += dom.Vel[0][ix][iy][iz]*dom.Rho[0][ix][iy][iz];
+        M    += dom.Rho[0][ix][iy][iz];
     }
     Flux/=M;
-    dat.oss_ss << dom.Time << Util::_8s << Flux(0) << Util::_8s << Flux(1) << Util::_8s << Flux(2) << Util::_8s << M/nc << std::endl;
+    dat.oss_ss << dom.Time << Util::_8s << Flux(0) << Util::_8s << Flux(1) << Util::_8s << Flux(2) << std::endl;
 }
 
 
@@ -153,8 +216,11 @@ int main(int argc, char **argv) try
     if (argc==3) Nproc = atoi(argv[2]);
 
     String fileLBM;
-    String matrixLBM;
     bool   Render = true;
+    size_t Step = 1;
+    size_t nx0;
+    size_t ny0;
+    size_t nz0;
     size_t nx;
     size_t ny;
     size_t nz;
@@ -170,8 +236,11 @@ int main(int argc, char **argv) try
     double DPz;
 
     infile >> fileLBM;    infile.ignore(200,'\n');
-    infile >> matrixLBM;  infile.ignore(200,'\n');
     infile >> Render;     infile.ignore(200,'\n');
+    infile >> Step;       infile.ignore(200,'\n');
+    infile >> nx0;        infile.ignore(200,'\n');
+    infile >> ny0;        infile.ignore(200,'\n');
+    infile >> nz0;        infile.ignore(200,'\n');
     infile >> nx;         infile.ignore(200,'\n');
     infile >> ny;         infile.ignore(200,'\n');
     infile >> nz;         infile.ignore(200,'\n');
@@ -206,80 +275,48 @@ int main(int argc, char **argv) try
 
     hid_t file_id;
     file_id = H5Fopen(fileLBM.CStr(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (!H5LTfind_dataset(file_id,matrixLBM.CStr())) throw new Fatal("The matrix name does not match \n");;
+    hid_t group_id = H5Gopen(file_id, "/t0",H5P_DEFAULT);
+    if (!H5LTfind_dataset(group_id,"channel0")) throw new Fatal("The matrix name does not match \n");
 
-    float * Gamma = new float[nx*ny*nz];
-    H5LTread_dataset_float(file_id,matrixLBM.CStr(),Gamma);
+    hsize_t dims[3];
+    H5T_class_t *class_id; 
+    size_t *type_size; 
 
-    LBM::Domain Dom(D3Q15, nu, iVec3_t(nx,ny,nz), 1.0, 1.0);
+    H5LTget_dataset_info (group_id, "channel0", dims, class_id, type_size);
+    std::cout << dims[2] << " " << dims[1] << " " << dims[0] << std::endl; 
+    size_t ncells = dims[0]*dims[1]*dims[2];
+    iVec3_t ndims = iVec3_t(dims[2],dims[1],dims[0]);
+    int * Gamma = new int[ncells];
+    H5LTread_dataset_int(group_id,"channel0",Gamma);
+
+    FLBM::Domain Dom(D3Q15, nu, iVec3_t(nx,ny,nz), 1.0, 1.0);
     UserData dat;
     Dom.UserData = &dat;
 
-    // set initial condition
-    double rho = 1.0;
-    for (size_t i=0;i<Dom.Lat[0].Ncells;i++)
-    {
-        if (Gamma[i]<0.5) Dom.Lat[0].Cells[i]->IsSolid = true;
-        Dom.Lat[0].Cells[i]->Initialize(rho,OrthoSys::O);
-    }
 
-
-	// set inner obstacle
-    for (int i=0;i<nx;i++)
+    #pragma omp parallel for schedule(static) num_threads(Nproc)
+    for (size_t ix=0;ix<Dom.Ndim(0);ix++)
+    for (size_t iy=0;iy<Dom.Ndim(1);iy++)
+    for (size_t iz=0;iz<Dom.Ndim(2);iz++)
     {
-        Dom.Lat[0].GetCell(iVec3_t(i,0   ,0   ))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(i,ny-1,0   ))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(i,0   ,nz-1))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(i,ny-1,nz-1))->IsSolid = true;
+        size_t idx = FLBM::Pt2idx(iVec3_t(ix+nx0,iy+ny0,iz+nz0),ndims);
+        Dom.Initialize(0,iVec3_t(ix,iy,iz),1.0,OrthoSys::O);
+        if (Gamma[idx]==1) Dom.IsSolid[0][ix][iy][iz] = true;
     }
-    for (int i=0;i<ny;i++)
-    {
-        Dom.Lat[0].GetCell(iVec3_t(0   ,i,0   ))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(nx-1,i,0   ))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(0   ,i,nz-1))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(nx-1,i,nz-1))->IsSolid = true;
-    }
-    for (int i=0;i<nz;i++)
-    {
-        Dom.Lat[0].GetCell(iVec3_t(0   ,0   ,i))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(nx-1,0   ,i))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(0   ,ny-1,i))->IsSolid = true;
-        Dom.Lat[0].GetCell(iVec3_t(nx-1,ny-1,i))->IsSolid = true;
-    }
-
-    //Set boundary conditions
-    for (int i=0;i<nx;i++)
-    for (int j=0;j<ny;j++)
-    {
-        dat.zmin.Push(Dom.Lat[0].GetCell(iVec3_t(i,j,0   )));
-        dat.zmax.Push(Dom.Lat[0].GetCell(iVec3_t(i,j,nz-1)));
-        Dom.Lat[0].GetCell(iVec3_t(i,j,0   ))->RhoBC = rho+0.5*DPz;
-        Dom.Lat[0].GetCell(iVec3_t(i,j,nz-1))->RhoBC = rho-0.5*DPz;
-    }
-    for (int i=0;i<nx;i++)
-    for (int j=0;j<nz;j++)
-    {
-        dat.ymin.Push(Dom.Lat[0].GetCell(iVec3_t(i,0   ,j)));
-        dat.ymax.Push(Dom.Lat[0].GetCell(iVec3_t(i,ny-1,j)));
-        Dom.Lat[0].GetCell(iVec3_t(i,0   ,j))->RhoBC = rho+0.5*DPy;
-        Dom.Lat[0].GetCell(iVec3_t(i,ny-1,j))->RhoBC = rho-0.5*DPy;
-    }
-    for (int i=0;i<ny;i++)
-    for (int j=0;j<nz;j++)
-    {
-        dat.xmin.Push(Dom.Lat[0].GetCell(iVec3_t(0   ,i,j)));
-        dat.xmax.Push(Dom.Lat[0].GetCell(iVec3_t(nx-1,i,j)));
-        Dom.Lat[0].GetCell(iVec3_t(0   ,i,j))->RhoBC = rho+0.5*DPx;
-        Dom.Lat[0].GetCell(iVec3_t(nx-1,i,j))->RhoBC = rho-0.5*DPx;
-    }
-
     Dom.WriteXDMF("initial");
+
+    dat.rhoxmin = 1.0 + 0.5*DPx;
+    dat.rhoxmax = 1.0 - 0.5*DPx;
+    dat.rhoymin = 1.0 + 0.5*DPy;
+    dat.rhoymax = 1.0 - 0.5*DPy;
+    dat.rhozmin = 1.0 + 0.5*DPz;
+    dat.rhozmax = 1.0 - 0.5*DPz;
 
 
     //Solving
     Dom.Solve(Tf,dtOut,Setup,Report,filekey.CStr(),Render,Nproc);
     dat.oss_ss.close();
-
+//
     Dom.WriteXDMF("final");
 
     return 0;

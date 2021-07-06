@@ -1,13 +1,16 @@
-binary200C.h5   load the binary file
-tdm          matrix name
+Coral-Trial.h5   load the binary file
 1   Render;
-200  nx
-200  ny
+2   Step for saving files
+180   nx0 initial node position
+180   ny0
+180   nz0
+200   nx
+200   ny
 200   nz
 0.17  nu;    
 5.0e3   Tf;    
 5.0e1   dtOut;
 0      oct
--0.1   Giso or DPx;  
+-0.01   Giso or DPx;  
 0.0    G    or Dpy;    
 0.0    th   or DPz;    
