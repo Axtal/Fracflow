@@ -53,11 +53,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][ix][iy][0];
             Vec3_t * V = &dom.Vel[0][ix][iy][0];
             double * R = &dom.Rho[0][ix][iy][0];
-            F[1] = 1.0/3.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-F[2]-2*F[3]-2*F[4]-2*F[5]-2*F[6]-4*F[8]+2*dat.rhoxmin);
-            F[7] = 1.0/24.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-4*F[2] +F[3]-5*F[4]  +F[5]-5*F[6]+20*F[8]+2*dat.rhoxmin);
-            F[9] = 1.0/24.0*(-2*F[0]+20*F[10]-4*F[12]-4*F[14]-4*F[2]+F[3]-5*F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhoxmin);
-            F[11]= 1.0/24.0*(-2*F[0]-4*F[10]+20*F[12]-4*F[14]-4*F[2]-5*F[3]+F[4]  +F[5]-5*F[6]-4*F[8]+2*dat.rhoxmin);
-            F[13]= 1.0/24.0*(-2*F[0]-4*F[10]-4 *F[12]+20*F[14]-4*F[2]-5*F[3]+  F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhoxmin);
+            F[1] = 1.0/3.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-F[2]-2*F[3]-2*F[4]-2*F[5]-2*F[6]-4*F[8]+2*dat.rhozmin);
+            F[7] = 1.0/24.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-4*F[2] +F[3]-5*F[4]  +F[5]-5*F[6]+20*F[8]+2*dat.rhozmin);
+            F[9] = 1.0/24.0*(-2*F[0]+20*F[10]-4*F[12]-4*F[14]-4*F[2]+F[3]-5*F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhozmin);
+            F[11]= 1.0/24.0*(-2*F[0]-4*F[10]+20*F[12]-4*F[14]-4*F[2]-5*F[3]+F[4]  +F[5]-5*F[6]-4*F[8]+2*dat.rhozmin);
+            F[13]= 1.0/24.0*(-2*F[0]-4*F[10]-4 *F[12]+20*F[14]-4*F[2]-5*F[3]+  F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhozmin);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -73,11 +73,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][ix][iy][dom.Ndim(2)-1];
             Vec3_t * V = &dom.Vel[0][ix][iy][dom.Ndim(2)-1];
             double * R = &dom.Rho[0][ix][iy][dom.Ndim(2)-1];
-            F[2] = 1/3.0* (-2*F[0]-F[1]-2*(2*F[11]+2*F[13]+F[3]+F[4]+F[5]+F[6]+2*F[7]+2*F[9]-dat.rhoxmax));
-            F[8] = 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] - 5*F[5] + F[6] +20*F[7] - 4*F[9] + 2*dat.rhoxmax);
-            F[10]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] + F[5] - 5*F[6] - 4*F[7] + 20*F[9] + 2*dat.rhoxmax) ;
-            F[12]= 1/24.0*(-2*F[0] - 4*F[1] + 20*F[11] - 4*F[13] + F[3] - 5*F[4] - 5*F[5] + F[6] -  4*F[7] - 4*F[9] + 2*dat.rhoxmax);
-            F[14]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] + 20*F[13] + F[3] - 5*F[4] + F[5] - 5*F[6] -  4*F[7] - 4*F[9] + 2*dat.rhoxmax);
+            F[2] = 1/3.0* (-2*F[0]-F[1]-2*(2*F[11]+2*F[13]+F[3]+F[4]+F[5]+F[6]+2*F[7]+2*F[9]-dat.rhozmax));
+            F[8] = 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] - 5*F[5] + F[6] +20*F[7] - 4*F[9] + 2*dat.rhozmax);
+            F[10]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] + F[5] - 5*F[6] - 4*F[7] + 20*F[9] + 2*dat.rhozmax) ;
+            F[12]= 1/24.0*(-2*F[0] - 4*F[1] + 20*F[11] - 4*F[13] + F[3] - 5*F[4] - 5*F[5] + F[6] -  4*F[7] - 4*F[9] + 2*dat.rhozmax);
+            F[14]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] + 20*F[13] + F[3] - 5*F[4] + F[5] - 5*F[6] -  4*F[7] - 4*F[9] + 2*dat.rhozmax);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -143,11 +143,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][0][iy][iz];
             Vec3_t * V = &dom.Vel[0][0][iy][iz];
             double * R = &dom.Rho[0][0][iy][iz];
-            F[5] = 1/3.0*(-2*F[0] - 2*F[1] - 4*F[12] - 4*F[13] - 2*F[2] - 2*F[3] - 2*F[4] - F[6] -  4*F[8] - 4*F[9] + 2*dat.rhozmin);
-            F[7] = 1/24.0*(-2*F[0] + F[1] - 4*F[12] - 4*F[13] - 5*F[2] + F[3] - 5*F[4] - 4*F[6] +  20*F[8] - 4*F[9] + 2*dat.rhozmin);
-            F[10] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] - 4*F[13] + F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] + 20*F[9] + 2*dat.rhozmin);
-            F[11] = 1/24.0*(-2*F[0] + F[1] + 20*F[12] - 4*F[13] - 5*F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhozmin);
-            F[14] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] + 20*F[13] + F[2] + F[3] - 5*F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhozmin);
+            F[5] = 1/3.0*(-2*F[0] - 2*F[1] - 4*F[12] - 4*F[13] - 2*F[2] - 2*F[3] - 2*F[4] - F[6] -  4*F[8] - 4*F[9] + 2*dat.rhoxmin);
+            F[7] = 1/24.0*(-2*F[0] + F[1] - 4*F[12] - 4*F[13] - 5*F[2] + F[3] - 5*F[4] - 4*F[6] +  20*F[8] - 4*F[9] + 2*dat.rhoxmin);
+            F[10] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] - 4*F[13] + F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] + 20*F[9] + 2*dat.rhoxmin);
+            F[11] = 1/24.0*(-2*F[0] + F[1] + 20*F[12] - 4*F[13] - 5*F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhoxmin);
+            F[14] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] + 20*F[13] + F[2] + F[3] - 5*F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhoxmin);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -163,11 +163,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][dom.Ndim(0)-1][iy][iz];
             Vec3_t * V = &dom.Vel[0][dom.Ndim(0)-1][iy][iz];
             double * R = &dom.Rho[0][dom.Ndim(0)-1][iy][iz];
-            F[6]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[14]- 2*F[2]- 2*F[3]- 2*F[4]- F[5]- 4*F[7]+ 2*dat.rhozmax);
-            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]- 4*F[14]+ F[2]- 5*F[3]+ F[4]- 4*F[5]+ 20*F[7]+ 2*dat.rhozmax);
-            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[14]- 5*F[2]+ F[3]- 5*F[4]- 4*F[5]- 4*F[7]+ 2*dat.rhozmax);
-            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[14]+ F[2]+ F[3]- 5*F[4]-4*F[5]- 4*F[7]+ 2*dat.rhozmax);
-            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]+ 20*F[14]- 5*F[2]- 5*F[3]+ F[4]-4*F[5]- 4*F[7]+ 2*dat.rhozmax);
+            F[6]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[14]- 2*F[2]- 2*F[3]- 2*F[4]- F[5]- 4*F[7]+ 2*dat.rhoxmax);
+            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]- 4*F[14]+ F[2]- 5*F[3]+ F[4]- 4*F[5]+ 20*F[7]+ 2*dat.rhoxmax);
+            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[14]- 5*F[2]+ F[3]- 5*F[4]- 4*F[5]- 4*F[7]+ 2*dat.rhoxmax);
+            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[14]+ F[2]+ F[3]- 5*F[4]-4*F[5]- 4*F[7]+ 2*dat.rhoxmax);
+            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]+ 20*F[14]- 5*F[2]- 5*F[3]+ F[4]-4*F[5]- 4*F[7]+ 2*dat.rhoxmax);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -212,12 +212,13 @@ int main(int argc, char **argv) try
     String filename (filekey+".inp");
     if (!Util::FileExists(filename)) throw new Fatal("File <%s> not found",filename.CStr());
     std::ifstream infile(filename.CStr());
-    size_t Nproc = 1;
+    size_t Nproc = 0.75*omp_get_max_threads();
     if (argc==3) Nproc = atoi(argv[2]);
 
     String fileLBM;
     bool   Render = true;
     size_t Step = 1;
+    bool   Run  = true;
     size_t nx0;
     size_t ny0;
     size_t nz0;
@@ -238,6 +239,7 @@ int main(int argc, char **argv) try
     infile >> fileLBM;    infile.ignore(200,'\n');
     infile >> Render;     infile.ignore(200,'\n');
     infile >> Step;       infile.ignore(200,'\n');
+    infile >> Run;        infile.ignore(200,'\n');
     infile >> nx0;        infile.ignore(200,'\n');
     infile >> ny0;        infile.ignore(200,'\n');
     infile >> nz0;        infile.ignore(200,'\n');
@@ -283,9 +285,12 @@ int main(int argc, char **argv) try
     size_t *type_size; 
 
     H5LTget_dataset_info (group_id, "channel0", dims, class_id, type_size);
-    std::cout << dims[2] << " " << dims[1] << " " << dims[0] << std::endl; 
+    std::cout << " \n Dimensions of the imported array " << dims[2] << " " << dims[1] << " " << dims[0] << std::endl; 
     size_t ncells = dims[0]*dims[1]*dims[2];
     iVec3_t ndims = iVec3_t(dims[2],dims[1],dims[0]);
+    if (nx0+nx>ndims[2]) throw new Fatal("Simulation box out of bounds in x direction \n");
+    if (ny0+ny>ndims[1]) throw new Fatal("Simulation box out of bounds in y direction \n");
+    if (nz0+nz>ndims[0]) throw new Fatal("Simulation box out of bounds in z direction \n");
     int * Gamma = new int[ncells];
     H5LTread_dataset_int(group_id,"channel0",Gamma);
 
@@ -299,11 +304,38 @@ int main(int argc, char **argv) try
     for (size_t iy=0;iy<Dom.Ndim(1);iy++)
     for (size_t iz=0;iz<Dom.Ndim(2);iz++)
     {
-        size_t idx = FLBM::Pt2idx(iVec3_t(ix+nx0,iy+ny0,iz+nz0),ndims);
+        size_t idx = FLBM::Pt2idx(iVec3_t(dims[2]-1-nx0-ix,dims[1]-1-ny0-iy,dims[0]-1-nz0-iz),ndims);
         Dom.Initialize(0,iVec3_t(ix,iy,iz),1.0,OrthoSys::O);
         if (Gamma[idx]==1) Dom.IsSolid[0][ix][iy][iz] = true;
     }
+    #pragma omp parallel for schedule(static) num_threads(Nproc)
+    for (size_t ix=0;ix<Dom.Ndim(0);ix++)
+    {
+        Dom.IsSolid[0][ix][0            ][0            ] = true;
+        Dom.IsSolid[0][ix][Dom.Ndim(1)-1][0            ] = true;
+        Dom.IsSolid[0][ix][0            ][Dom.Ndim(2)-1] = true;
+        Dom.IsSolid[0][ix][Dom.Ndim(1)-1][Dom.Ndim(2)-1] = true;
+    }
+    #pragma omp parallel for schedule(static) num_threads(Nproc)
+    for (size_t iy=0;iy<Dom.Ndim(1);iy++)
+    {
+        Dom.IsSolid[0][0            ][iy][0            ] = true;
+        Dom.IsSolid[0][Dom.Ndim(0)-1][iy][0            ] = true;
+        Dom.IsSolid[0][0            ][iy][Dom.Ndim(2)-1] = true;
+        Dom.IsSolid[0][Dom.Ndim(0)-1][iy][Dom.Ndim(2)-1] = true;
+    }
+    #pragma omp parallel for schedule(static) num_threads(Nproc)
+    for (size_t iz=0;iz<Dom.Ndim(2);iz++)
+    {
+        Dom.IsSolid[0][0            ][0            ][iz] = true;
+        Dom.IsSolid[0][Dom.Ndim(0)-1][0            ][iz] = true;
+        Dom.IsSolid[0][0            ][Dom.Ndim(1)-1][iz] = true;
+        Dom.IsSolid[0][Dom.Ndim(0)-1][Dom.Ndim(1)-1][iz] = true;
+    }
+
     Dom.WriteXDMF("initial");
+
+    if (!Run) return 0;
 
     dat.rhoxmin = 1.0 + 0.5*DPx;
     dat.rhoxmax = 1.0 - 0.5*DPx;
