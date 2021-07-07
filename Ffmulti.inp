@@ -1,0 +1,17 @@
+../Coral-Trial.h5   load the binary file
+1   Render;
+1   Step for saving files
+1   Run the simulation
+300   nx0 initial node position
+320   ny0
+0   nz0
+200   nx
+200   ny
+200   nz
+0.1666 nu;    
+2.0e3   Tf;    
+2.0e1   dtOut;
+1      oct
+0.01   Giso or DPx;  
+0.01    G    or Dpy;    
+pth    th   or DPz;    
