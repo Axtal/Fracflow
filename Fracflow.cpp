@@ -189,7 +189,7 @@ void Report (FLBM::Domain & dom, void * UD)
         String fs;
         fs.Printf("flux.res");
         dat.oss_ss.open(fs.CStr(),std::ios::out);
-        dat.oss_ss << Util::_10_6  <<  "Time" << Util::_8s << "Fx" << Util::_8s << "Fy" << Util::_8s << "Fz" << Util::_8s << "M" << std::endl;
+        dat.oss_ss << Util::_10_6  <<  "Time" << Util::_8s << "Fx" << Util::_8s << "Fy" << Util::_8s << "Fz" << std::endl;
     }
     Vec3_t Flux = OrthoSys::O;
     double M    = 0.0;
@@ -346,6 +346,7 @@ int main(int argc, char **argv) try
 
 
     //Solving
+    Dom.Step = Step;
     Dom.Solve(Tf,dtOut,Setup,Report,filekey.CStr(),Render,Nproc);
     dat.oss_ss.close();
 //
