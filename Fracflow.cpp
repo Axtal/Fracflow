@@ -38,12 +38,20 @@ struct UserData
     double        rhoymax;
     double        rhozmin;
     double        rhozmax;
+    double            rho;
+    double             Tf;
     std::ofstream oss_ss;       ///< file for stress strain data
 };
 
 void Setup (FLBM::Domain & dom, void * UD)
 {
     UserData & dat = (*static_cast<UserData *>(UD));
+    double rhoxmin = dat.rho + std::min(10.0*dom.Time/dat.Tf,1.0)*(dat.rhoxmin - dat.rho);
+    double rhoxmax = dat.rho + std::min(10.0*dom.Time/dat.Tf,1.0)*(dat.rhoxmax - dat.rho);
+    double rhoymin = dat.rho + std::min(10.0*dom.Time/dat.Tf,1.0)*(dat.rhoymin - dat.rho);
+    double rhoymax = dat.rho + std::min(10.0*dom.Time/dat.Tf,1.0)*(dat.rhoymax - dat.rho);
+    double rhozmin = dat.rho + std::min(10.0*dom.Time/dat.Tf,1.0)*(dat.rhozmin - dat.rho);
+    double rhozmax = dat.rho + std::min(10.0*dom.Time/dat.Tf,1.0)*(dat.rhozmax - dat.rho);
     #pragma omp parallel for schedule(static) num_threads(dom.Nproc)
     for (size_t ix=0;ix<dom.Ndim(0);ix++)
     for (size_t iy=0;iy<dom.Ndim(1);iy++)
@@ -53,11 +61,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][ix][iy][0];
             Vec3_t * V = &dom.Vel[0][ix][iy][0];
             double * R = &dom.Rho[0][ix][iy][0];
-            F[1] = 1.0/3.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-F[2]-2*F[3]-2*F[4]-2*F[5]-2*F[6]-4*F[8]+2*dat.rhozmin);
-            F[7] = 1.0/24.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-4*F[2] +F[3]-5*F[4]  +F[5]-5*F[6]+20*F[8]+2*dat.rhozmin);
-            F[9] = 1.0/24.0*(-2*F[0]+20*F[10]-4*F[12]-4*F[14]-4*F[2]+F[3]-5*F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhozmin);
-            F[11]= 1.0/24.0*(-2*F[0]-4*F[10]+20*F[12]-4*F[14]-4*F[2]-5*F[3]+F[4]  +F[5]-5*F[6]-4*F[8]+2*dat.rhozmin);
-            F[13]= 1.0/24.0*(-2*F[0]-4*F[10]-4 *F[12]+20*F[14]-4*F[2]-5*F[3]+  F[4]-5*F[5]+F[6]-4*F[8]+2*dat.rhozmin);
+            F[5] = 1/3.0*(-2*F[0] - 2*F[1] - 4*F[12] - 4*F[13] - 2*F[2] - 2*F[3] - 2*F[4] - F[6] -  4*F[8] - 4*F[9] + 2*rhozmin);
+            F[7] = 1/24.0*(-2*F[0] + F[1] - 4*F[12] - 4*F[13] - 5*F[2] + F[3] - 5*F[4] - 4*F[6] +  20*F[8] - 4*F[9] + 2*rhozmin);
+            F[10] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] - 4*F[13] + F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] + 20*F[9] + 2*rhozmin);
+            F[11] = 1/24.0*(-2*F[0] + F[1] + 20*F[12] - 4*F[13] - 5*F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*rhozmin);
+            F[14] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] + 20*F[13] + F[2] + F[3] - 5*F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*rhozmin);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -73,11 +81,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][ix][iy][dom.Ndim(2)-1];
             Vec3_t * V = &dom.Vel[0][ix][iy][dom.Ndim(2)-1];
             double * R = &dom.Rho[0][ix][iy][dom.Ndim(2)-1];
-            F[2] = 1/3.0* (-2*F[0]-F[1]-2*(2*F[11]+2*F[13]+F[3]+F[4]+F[5]+F[6]+2*F[7]+2*F[9]-dat.rhozmax));
-            F[8] = 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] - 5*F[5] + F[6] +20*F[7] - 4*F[9] + 2*dat.rhozmax);
-            F[10]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] + F[5] - 5*F[6] - 4*F[7] + 20*F[9] + 2*dat.rhozmax) ;
-            F[12]= 1/24.0*(-2*F[0] - 4*F[1] + 20*F[11] - 4*F[13] + F[3] - 5*F[4] - 5*F[5] + F[6] -  4*F[7] - 4*F[9] + 2*dat.rhozmax);
-            F[14]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] + 20*F[13] + F[3] - 5*F[4] + F[5] - 5*F[6] -  4*F[7] - 4*F[9] + 2*dat.rhozmax);
+            F[6]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[14]- 2*F[2]- 2*F[3]- 2*F[4]- F[5]- 4*F[7]+ 2*rhozmax);
+            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]- 4*F[14]+ F[2]- 5*F[3]+ F[4]- 4*F[5]+ 20*F[7]+ 2*rhozmax);
+            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[14]- 5*F[2]+ F[3]- 5*F[4]- 4*F[5]- 4*F[7]+ 2*rhozmax);
+            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[14]+ F[2]+ F[3]- 5*F[4]-4*F[5]- 4*F[7]+ 2*rhozmax);
+            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]+ 20*F[14]- 5*F[2]- 5*F[3]+ F[4]-4*F[5]- 4*F[7]+ 2*rhozmax);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -98,11 +106,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][ix][0][iz];
             Vec3_t * V = &dom.Vel[0][ix][0][iz];
             double * R = &dom.Rho[0][ix][0][iz];
-            F[3]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[13]- 2*F[2]- F[4]- 2*F[5]- 2*F[6]- 4*F[8]+ 2*dat.rhoymin);
-            F[7]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]- 4*F[13]- 5*F[2]- 4*F[4]+ F[5]-  5*F[6]+ 20*F[8]+2*dat.rhoymin);
-            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[13]- 5*F[2]- 4*F[4]- 5*F[5]+ F[6]- 4*F[8]+ 2*dat.rhoymin);
-            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[13]+ F[2]- 4*F[4]-5*F[5]+ F[6]- 4*F[8]+ 2*dat.rhoymin);
-            F[14]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]+ 20*F[13]+ F[2]- 4*F[4]+ F[5]-5*F[6]- 4*F[8]+ 2*dat.rhoymin);
+            F[3]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[13]- 2*F[2]- F[4]- 2*F[5]- 2*F[6]- 4*F[8]+ 2*rhoymin);
+            F[7]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]- 4*F[13]- 5*F[2]- 4*F[4]+ F[5]-  5*F[6]+ 20*F[8]+2*rhoymin);
+            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[13]- 5*F[2]- 4*F[4]- 5*F[5]+ F[6]- 4*F[8]+ 2*rhoymin);
+            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[13]+ F[2]- 4*F[4]-5*F[5]+ F[6]- 4*F[8]+ 2*rhoymin);
+            F[14]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]+ 20*F[13]+ F[2]- 4*F[4]+ F[5]-5*F[6]- 4*F[8]+ 2*rhoymin);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -118,11 +126,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][ix][dom.Ndim(1)-1][iz];
             Vec3_t * V = &dom.Vel[0][ix][dom.Ndim(1)-1][iz];
             double * R = &dom.Rho[0][ix][dom.Ndim(1)-1][iz];
-            F[4]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[12]- 4*F[14]- 2*F[2]- F[3]- 2*F[5]- 2*F[6]- 4*F[7]- 4*F[9]+ 2*dat.rhoymax);
-            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[12]- 4*F[14]+ F[2]- 4*F[3]- 5*F[5]+ F[6]+  20*F[7]- 4*F[9]+2*dat.rhoymax);
-            F[10]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[12]- 4*F[14]+ F[2]- 4*F[3]+ F[5]- 5*F[6]- 4*F[7]+ 20*F[9]+2*dat.rhoymax);
-            F[11]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[12]- 4*F[14]- 5*F[2]- 4*F[3]+ F[5]- 5*F[6]-4*F[7]- 4*F[9]+ 2*dat.rhoymax);
-            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[12]+ 20*F[14]- 5*F[2]- 4*F[3]- 5*F[5]+ F[6]-4*F[7]- 4*F[9]+ 2*dat.rhoymax);
+            F[4]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[12]- 4*F[14]- 2*F[2]- F[3]- 2*F[5]- 2*F[6]- 4*F[7]- 4*F[9]+ 2*rhoymax);
+            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[12]- 4*F[14]+ F[2]- 4*F[3]- 5*F[5]+ F[6]+  20*F[7]- 4*F[9]+2*rhoymax);
+            F[10]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[12]- 4*F[14]+ F[2]- 4*F[3]+ F[5]- 5*F[6]- 4*F[7]+ 20*F[9]+2*rhoymax);
+            F[11]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[12]- 4*F[14]- 5*F[2]- 4*F[3]+ F[5]- 5*F[6]-4*F[7]- 4*F[9]+ 2*rhoymax);
+            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[12]+ 20*F[14]- 5*F[2]- 4*F[3]- 5*F[5]+ F[6]-4*F[7]- 4*F[9]+ 2*rhoymax);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -143,11 +151,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][0][iy][iz];
             Vec3_t * V = &dom.Vel[0][0][iy][iz];
             double * R = &dom.Rho[0][0][iy][iz];
-            F[5] = 1/3.0*(-2*F[0] - 2*F[1] - 4*F[12] - 4*F[13] - 2*F[2] - 2*F[3] - 2*F[4] - F[6] -  4*F[8] - 4*F[9] + 2*dat.rhoxmin);
-            F[7] = 1/24.0*(-2*F[0] + F[1] - 4*F[12] - 4*F[13] - 5*F[2] + F[3] - 5*F[4] - 4*F[6] +  20*F[8] - 4*F[9] + 2*dat.rhoxmin);
-            F[10] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] - 4*F[13] + F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] + 20*F[9] + 2*dat.rhoxmin);
-            F[11] = 1/24.0*(-2*F[0] + F[1] + 20*F[12] - 4*F[13] - 5*F[2] - 5*F[3] + F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhoxmin);
-            F[14] = 1/24.0*(-2*F[0] - 5*F[1] - 4*F[12] + 20*F[13] + F[2] + F[3] - 5*F[4] - 4*F[6] - 4*F[8] - 4*F[9] + 2*dat.rhoxmin);
+            F[1] = 1.0/3.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-F[2]-2*F[3]-2*F[4]-2*F[5]-2*F[6]-4*F[8]+2*rhoxmin);
+            F[7] = 1.0/24.0*(-2*F[0]-4*F[10]-4*F[12]-4*F[14]-4*F[2] +F[3]-5*F[4]  +F[5]-5*F[6]+20*F[8]+2*rhoxmin);
+            F[9] = 1.0/24.0*(-2*F[0]+20*F[10]-4*F[12]-4*F[14]-4*F[2]+F[3]-5*F[4]-5*F[5]+F[6]-4*F[8]+2*rhoxmin);
+            F[11]= 1.0/24.0*(-2*F[0]-4*F[10]+20*F[12]-4*F[14]-4*F[2]-5*F[3]+F[4]  +F[5]-5*F[6]-4*F[8]+2*rhoxmin);
+            F[13]= 1.0/24.0*(-2*F[0]-4*F[10]-4 *F[12]+20*F[14]-4*F[2]-5*F[3]+  F[4]-5*F[5]+F[6]-4*F[8]+2*rhoxmin);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -163,11 +171,11 @@ void Setup (FLBM::Domain & dom, void * UD)
             double * F = dom.   F[0][dom.Ndim(0)-1][iy][iz];
             Vec3_t * V = &dom.Vel[0][dom.Ndim(0)-1][iy][iz];
             double * R = &dom.Rho[0][dom.Ndim(0)-1][iy][iz];
-            F[6]= 1/3.0*(-2*F[0]- 2*F[1]- 4*F[10]- 4*F[11]- 4*F[14]- 2*F[2]- 2*F[3]- 2*F[4]- F[5]- 4*F[7]+ 2*dat.rhoxmax);
-            F[8]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]- 4*F[11]- 4*F[14]+ F[2]- 5*F[3]+ F[4]- 4*F[5]+ 20*F[7]+ 2*dat.rhoxmax);
-            F[9]= 1/24.0*(-2*F[0]+ F[1]+ 20*F[10]- 4*F[11]- 4*F[14]- 5*F[2]+ F[3]- 5*F[4]- 4*F[5]- 4*F[7]+ 2*dat.rhoxmax);
-            F[12]= 1/24.0*(-2*F[0]- 5*F[1]- 4*F[10]+ 20*F[11]- 4*F[14]+ F[2]+ F[3]- 5*F[4]-4*F[5]- 4*F[7]+ 2*dat.rhoxmax);
-            F[13]= 1/24.0*(-2*F[0]+ F[1]- 4*F[10]- 4*F[11]+ 20*F[14]- 5*F[2]- 5*F[3]+ F[4]-4*F[5]- 4*F[7]+ 2*dat.rhoxmax);
+            F[2] = 1/3.0* (-2*F[0]-F[1]-2*(2*F[11]+2*F[13]+F[3]+F[4]+F[5]+F[6]+2*F[7]+2*F[9]-rhoxmax));
+            F[8] = 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] - 5*F[5] + F[6] +20*F[7] - 4*F[9] + 2*rhoxmax);
+            F[10]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] - 4*F[13] - 5*F[3] + F[4] + F[5] - 5*F[6] - 4*F[7] + 20*F[9] + 2*rhoxmax) ;
+            F[12]= 1/24.0*(-2*F[0] - 4*F[1] + 20*F[11] - 4*F[13] + F[3] - 5*F[4] - 5*F[5] + F[6] -  4*F[7] - 4*F[9] + 2*rhoxmax);
+            F[14]= 1/24.0*(-2*F[0] - 4*F[1] - 4*F[11] + 20*F[13] + F[3] - 5*F[4] + F[5] - 5*F[6] -  4*F[7] - 4*F[9] + 2*rhoxmax);
             *V = OrthoSys::O;
             *R = 0.0;
             for (size_t k=0;k<dom.Nneigh;k++)
@@ -305,8 +313,8 @@ int main(int argc, char **argv) try
     for (size_t iz=0;iz<Dom.Ndim(2);iz++)
     {
         size_t idx = FLBM::Pt2idx(iVec3_t(dims[2]-1-nx0-ix,dims[1]-1-ny0-iy,dims[0]-1-nz0-iz),ndims);
-        Dom.Initialize(0,iVec3_t(ix,iy,iz),1.0,OrthoSys::O);
         if (Gamma[idx]==1) Dom.IsSolid[0][ix][iy][iz] = true;
+        Dom.Initialize(0,iVec3_t(ix,iy,iz),1.0,OrthoSys::O);
     }
     #pragma omp parallel for schedule(static) num_threads(Nproc)
     for (size_t ix=0;ix<Dom.Ndim(0);ix++)
@@ -343,9 +351,11 @@ int main(int argc, char **argv) try
     dat.rhoymax = 1.0 - 0.5*DPy;
     dat.rhozmin = 1.0 + 0.5*DPz;
     dat.rhozmax = 1.0 - 0.5*DPz;
+    dat.rho     = 1.0;
 
 
     //Solving
+    dat.Tf = Tf;
     Dom.Step = Step;
     Dom.Solve(Tf,dtOut,Setup,Report,filekey.CStr(),Render,Nproc);
     dat.oss_ss.close();
