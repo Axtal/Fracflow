@@ -296,9 +296,9 @@ int main(int argc, char **argv) try
     std::cout << " \n Dimensions of the imported array " << dims[2] << " " << dims[1] << " " << dims[0] << std::endl; 
     size_t ncells = dims[0]*dims[1]*dims[2];
     iVec3_t ndims = iVec3_t(dims[2],dims[1],dims[0]);
-    if (nx0+nx>ndims[2]) throw new Fatal("Simulation box out of bounds in x direction \n");
+    if (nx0+nx>ndims[0]) throw new Fatal("Simulation box out of bounds in x direction \n");
     if (ny0+ny>ndims[1]) throw new Fatal("Simulation box out of bounds in y direction \n");
-    if (nz0+nz>ndims[0]) throw new Fatal("Simulation box out of bounds in z direction \n");
+    if (nz0+nz>ndims[2]) throw new Fatal("Simulation box out of bounds in z direction \n");
     int * Gamma = new int[ncells];
     H5LTread_dataset_int(group_id,"channel0",Gamma);
 

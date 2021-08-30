@@ -2,12 +2,12 @@ Coral-Trial.h5   load the binary file
 1   Render;
 1   Step for saving files
 1   Run the simulation
-300   nx0 initial node position
-320   ny0
+0   nx0 initial node position
+0   ny0
 0   nz0
-200   nx
-200   ny
-200   nz
+300   nx
+360   ny
+370  nz
 0.1666 nu;    
 5.0e3   Tf;    
 5.0e1   dtOut;
