@@ -221,7 +221,7 @@ int main(int argc, char **argv) try
     if (!Util::FileExists(filename)) throw new Fatal("File <%s> not found",filename.CStr());
     std::ifstream infile(filename.CStr());
     size_t Nproc = 0.75*omp_get_max_threads();
-    if (argc==3) Nproc = atoi(argv[2]);
+    if (argc>=3) Nproc = atoi(argv[2]);
 
     String fileLBM;
     bool   Render = true;
@@ -296,9 +296,24 @@ int main(int argc, char **argv) try
     std::cout << " \n Dimensions of the imported array " << dims[2] << " " << dims[1] << " " << dims[0] << std::endl; 
     size_t ncells = dims[0]*dims[1]*dims[2];
     iVec3_t ndims = iVec3_t(dims[2],dims[1],dims[0]);
-    if (nx0+nx>ndims[0]) throw new Fatal("Simulation box out of bounds in x direction \n");
-    if (ny0+ny>ndims[1]) throw new Fatal("Simulation box out of bounds in y direction \n");
-    if (nz0+nz>ndims[2]) throw new Fatal("Simulation box out of bounds in z direction \n");
+    if (nx0>=ndims[0]) throw new Fatal("Simulation box out of bounds in x direction \n");
+    if (ny0>=ndims[1]) throw new Fatal("Simulation box out of bounds in y direction \n");
+    if (nz0>=ndims[2]) throw new Fatal("Simulation box out of bounds in z direction \n");
+    if (nx0+nx>=ndims[0])
+    {
+        nx = ndims[0] - nx0 - 1;
+        std::cout << "Simulation box out of bounds in the x direction, domain changed to nx= " << nx << std::endl;
+    }
+    if (ny0+ny>=ndims[1])
+    {
+        ny = ndims[1] - ny0 - 1;
+        std::cout << "Simulation box out of bounds in the y direction, domain changed to ny= " << ny << std::endl;
+    }
+    if (nz0+nz>=ndims[2])
+    {
+        nz = ndims[2] - nz0 - 1;
+        std::cout << "Simulation box out of bounds in the z direction, domain changed to nz= " << nz << std::endl;
+    }
     int * Gamma = new int[ncells];
     H5LTread_dataset_int(group_id,"channel0",Gamma);
 
@@ -341,6 +356,7 @@ int main(int argc, char **argv) try
         Dom.IsSolid[0][Dom.Ndim(0)-1][Dom.Ndim(1)-1][iz] = true;
     }
 
+    Dom.Step = Step;
     Dom.WriteXDMF("initial");
 
     if (!Run) return 0;
@@ -356,7 +372,6 @@ int main(int argc, char **argv) try
 
     //Solving
     dat.Tf = Tf;
-    Dom.Step = Step;
     Dom.Solve(Tf,dtOut,Setup,Report,filekey.CStr(),Render,Nproc);
     dat.oss_ss.close();
 //
