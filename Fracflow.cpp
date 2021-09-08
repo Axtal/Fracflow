@@ -406,18 +406,18 @@ int main(int argc, char **argv) try
 
 
     #pragma omp parallel for schedule(static) num_threads(Nproc)
-    for (size_t ix=0;ix<Dom.Ndim(0);ix++)
-    for (size_t iy=0;iy<Dom.Ndim(1);iy++)
-    for (size_t iz=0;iz<Dom.Ndim(2);iz++)
+    for (size_t ix=0;ix<nx;ix++)
+    for (size_t iy=0;iy<ny;iy++)
+    for (size_t iz=0;iz<nz;iz++)
     {
-        size_t idx = FLBM::Pt2idx(iVec3_t(dims[2]-1-nx0-ix,dims[1]-1-ny0-iy,dims[0]-1-nz0-iz),ndims);
+        size_t idx = FLBM::Pt2idx(iVec3_t(ndims[0]-1-nx0-ix,ndims[1]-1-ny0-iy,ndims[2]-1-nz0-iz),ndims);
         if (Gamma[idx]==1) Dom.IsSolid[0][ix][iy][iz] = true;
         Dom.Initialize(0,iVec3_t(ix,iy,iz),1.0,OrthoSys::O);
     }
 
     if (!hor)
     {
-        std::cout << "Pressure BC simulation running" << std::endl;
+        std::cout << "\n  Pressure BC simulation running \n" << std::endl;
         #pragma omp parallel for schedule(static) num_threads(Nproc)
         for (size_t ix=0;ix<Dom.Ndim(0);ix++)
         {
@@ -446,7 +446,7 @@ int main(int argc, char **argv) try
 
     else
     {
-        std::cout << "Horizontal flow simulation running" << std::endl;
+        std::cout << "\n  Horizontal flow simulation running \n" << std::endl;
         #pragma omp parallel for schedule(static) num_threads(Nproc)
         for (size_t ix=0;ix<Dom.Ndim(0);ix++)
         for (size_t iy=0;iy<Dom.Ndim(1);iy++)
