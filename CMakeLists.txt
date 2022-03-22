@@ -24,6 +24,7 @@ INCLUDE(${MECHSYSSANDBOX_SOURCE_DIR}/UseMECHSYS.cmake)
 
 SET(PROGS
     Fracflow
+    ct2xmf
 )
 
 

@@ -3,12 +3,12 @@ dims = size(sol);
 
 
 
-nx0 = 200;
-ny0 = 450;
-nz0 = 0;
-nx  = 300;
-ny  = 1;
-nz  = 100;
+nx0 = 0;
+ny0 = 0;
+nz0 = 100;
+nx  = 600;
+ny  = 600;
+nz  = 1;
 step = 1;
 
 ixpt = dims(1)-(nx0:nx0+nx-1);
