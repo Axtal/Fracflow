@@ -19,12 +19,13 @@
 ########################################################################
 
 PROJECT                (MECHSYSSANDBOX)
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.2)
 INCLUDE(${MECHSYSSANDBOX_SOURCE_DIR}/UseMECHSYS.cmake)
 
 SET(PROGS
     Fracflow
     ct2xmf
+    Force
 )
 
 
