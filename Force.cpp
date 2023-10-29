@@ -151,12 +151,14 @@ int main(int argc, char **argv) try
     double nu     = 1.0/6.0;
     double Tf     = 1.0e2;
     double dtOut  = 1.0e1;
+    double umax   = 0.01;
 
     infile >> fileLBM;    infile.ignore(200,'\n');
     infile >> Render;     infile.ignore(200,'\n');
     infile >> Step;       infile.ignore(200,'\n');
     infile >> Tf;         infile.ignore(200,'\n');
     infile >> dtOut;      infile.ignore(200,'\n');
+    infile >> umax;       infile.ignore(200,'\n');
 
     if (!Util::FileExists(fileLBM)) throw new Fatal("Flow field file not found \n");
 
@@ -197,7 +199,7 @@ int main(int argc, char **argv) try
         if (Gamma[idx]==1) 
         {
             Dom.IsSolid[0][ix][iy][iz] = true;
-            if (iz==0) lnum[omp_get_thread_num()].Push(idx);
+            if (iz>=0) lnum[omp_get_thread_num()].Push(idx);
         }
         Vec3_t vel(Vel[3*idx+0],Vel[3*idx+1],Vel[3*idx+2]);
         Dom.Initialize(0,iVec3_t(ix,iy,iz),Rho[idx],vel);
@@ -225,7 +227,8 @@ int main(int argc, char **argv) try
     #pragma omp parallel for schedule(static) num_threads(Nproc)
     for (size_t iz=0;iz<Dom.Ndim(2);iz++)
     {
-        dat.Vel[iz] = Dom.Vel[0][0][ny/2][iz](0);
+        dat.Vel[iz] = (iz-(nz-1))*(iz-(nz-1))*(-umax/((nz-1.5)*(nz-1.5)))+umax;
+        //dat.Vel[iz] = Dom.Vel[0][0][ny/2][iz](0);
     }
 
     Dom.Step = Step;
@@ -236,6 +239,7 @@ int main(int argc, char **argv) try
     dat.Tf = Tf;
     Dom.Solve(Tf,dtOut,Setup,Report,filekey.CStr(),Render,Nproc);
     dat.oss_ss.close();
+    Dom.WriteXDMF("force_final");
 //
 
     return 0;

@@ -12,6 +12,6 @@
 1.0e3   Tf;    
 1.0e1   dtOut;
 1      oct
-0.01   Giso or DPx;  
+0.01   Giso or DPx or Vmax if horizontal flow;  
 0.01    G    or Dpy;    
 pth    th   or DPz;    
