@@ -11,7 +11,7 @@
 0.1666 nu;    
 5.0e3   Tf;    
 5.0e2   dtOut;
-1      oct
+0      oct
 0.01   Giso or DPx;  
 0.01    G    or Dpy;    
 120    th   or DPz;    

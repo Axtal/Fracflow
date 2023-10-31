@@ -27,6 +27,7 @@ struct UserData
 {
     double            rho;
     double             Tf;
+    double              A;
     Array<double>     Vel;
     Array<size_t>     Sid;
     std::ofstream oss_ss;       ///< file for stress strain data
@@ -114,7 +115,7 @@ void Report (FLBM::Domain & dom, void * UD)
         String fs;
         fs.Printf("force.res");
         dat.oss_ss.open(fs.CStr(),std::ios::out);
-        dat.oss_ss << Util::_10_6  <<  "Time" << Util::_8s << "Fx" << Util::_8s << "Fy" << Util::_8s << "Fz" << Util::_8s << "M" << std::endl;
+        dat.oss_ss << Util::_10_6  <<  "Time" << Util::_8s << "Fx" << Util::_8s << "Fy" << Util::_8s << "Fz" << Util::_8s << "M" << Util::_8s << "Vx" << Util::_8s << "Cd" << std::endl;
     }
     Vec3_t Force = OrthoSys::O;
     double M     = 0.0;
@@ -128,11 +129,23 @@ void Report (FLBM::Domain & dom, void * UD)
             double Fvpp     = dom.Feq(dom.Op[k],rho,OrthoSys::O);
             double Fvp      = dom.Feq(k        ,rho,OrthoSys::O);
             double Omega    = dom.F[0][iv(0)][iv(1)][iv(2)][dom.Op[k]] - Fvpp - (dom.F[0][iv(0)][iv(1)][iv(2)][k] - Fvp);
-            Force += Omega*dom.C[k];
-            M     += Omega*dom.C[k](0)*iv(2);
+            Force -= Omega*dom.C[k];
+            M     -= Omega*dom.C[k](0)*iv(2);
         }
     }
-    dat.oss_ss << dom.Time << Util::_8s << Force(0) << Util::_8s << Force(1) << Util::_8s << Force(2) << Util::_8s << M << std::endl;
+    double mass = 0.0;
+    double vx   = 0.0;
+    for (size_t ix=0;ix<dom.Ndim(0);ix++)
+    for (size_t iy=0;iy<dom.Ndim(1);iy++)
+    for (size_t iz=0;iz<dom.Ndim(2);iz++)
+    {
+        vx   += dom.Vel[0][ix][iy][iz](0)*dom.Rho[0][ix][iy][iz];
+        mass += dom.Rho[0][ix][iy][iz];
+    }
+    vx /= mass;
+
+    double cd = 2.0*Force(0)/(dat.rho*vx*vx*dat.A);
+    dat.oss_ss << dom.Time << Util::_8s << Force(0) << Util::_8s << Force(1) << Util::_8s << Force(2) << Util::_8s << M << Util::_8s << vx << Util::_8s << cd << std::endl;
 }
 
 
@@ -189,6 +202,13 @@ int main(int argc, char **argv) try
     iVec3_t ndims(nx,ny,nz);
 
     Array<Array<size_t> > lnum(Nproc);
+    bool A[ny][nz];
+    #pragma omp parallel for schedule(static) num_threads(Nproc)
+    for (size_t iy=0;iy<ny;iy++)
+    for (size_t iz=0;iz<nz;iz++)
+    {
+        A[iy][iz] = false;
+    }
 
     #pragma omp parallel for schedule(static) num_threads(Nproc)
     for (size_t ix=0;ix<nx;ix++)
@@ -196,13 +216,20 @@ int main(int argc, char **argv) try
     for (size_t iz=0;iz<nz;iz++)
     {
         size_t idx = FLBM::Pt2idx(iVec3_t(ix,iy,iz),ndims);
+        double rho = Rho[idx];
         if (Gamma[idx]==1) 
         {
+            rho = 1.0;
             Dom.IsSolid[0][ix][iy][iz] = true;
-            if (iz>=0) lnum[omp_get_thread_num()].Push(idx);
+            if (iz>=0) 
+            {
+                lnum[omp_get_thread_num()].Push(idx);
+                A[iy][iz] = true;
+            }
         }
         Vec3_t vel(Vel[3*idx+0],Vel[3*idx+1],Vel[3*idx+2]);
-        Dom.Initialize(0,iVec3_t(ix,iy,iz),Rho[idx],vel);
+
+        Dom.Initialize(0,iVec3_t(ix,iy,iz),rho,vel);
     }
 
     size_t tnum = 0;
@@ -222,6 +249,12 @@ int main(int argc, char **argv) try
         }
     }
 
+    dat.A = 0.0;
+    for (size_t iy=0;iy<ny;iy++)
+    for (size_t iz=0;iz<nz;iz++)
+    {
+        if (A[iy][iz]) dat.A += 1.0;
+    }
 
     dat.Vel.Resize(nz);
     #pragma omp parallel for schedule(static) num_threads(Nproc)
