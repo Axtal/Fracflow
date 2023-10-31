@@ -1,6 +1,7 @@
 final.h5   load the binary file
-0   Render;
-1   Step for saving files
+0       Render;
+1       Step for saving files
+0.16666 nu; 
 1.5e3   Tf;    
 1.5e2   dtOut;
 0.15    Vmax for horizontal flow

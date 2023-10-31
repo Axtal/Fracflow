@@ -169,6 +169,7 @@ int main(int argc, char **argv) try
     infile >> fileLBM;    infile.ignore(200,'\n');
     infile >> Render;     infile.ignore(200,'\n');
     infile >> Step;       infile.ignore(200,'\n');
+    infile >> nu;         infile.ignore(200,'\n');
     infile >> Tf;         infile.ignore(200,'\n');
     infile >> dtOut;      infile.ignore(200,'\n');
     infile >> umax;       infile.ignore(200,'\n');
